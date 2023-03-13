@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-apt-get upgrade -y
+apt-get update
 apt-get install dnsmasq nginx pxelinux syslinux-common -y
 #echo 'DNSMASQ_OPTS="-p0"' >> /etc/default/dnsmasq
 rm /etc/nginx/sites-enabled/default
@@ -33,9 +33,9 @@ EOD
 tee -a /etc/dnsmasq.d/dhcp.conf > /dev/null <<-EOD
 
 # DHCP
-interface=bond0,lo
+interface=bond0.101,lo
 bind-interfaces
-dhcp-range=bond0,192.168.100.100,192.168.100.200
+dhcp-range=bond0.101,192.168.100.100,192.168.100.200
 dhcp-option=6,147.75.207.207,147.75.207.208
 
 # PXE config
@@ -68,7 +68,7 @@ tee -a /opt/netboot/CHV-answer.xml > /dev/null <<-EOD
   <primary-disk>sda</primary-disk>
   <keymap>us</keymap>
   <root-password type="hash">your_password_hash_here</root-password>
-  <source type="url">http://<YOUR_SERVER_IP>/CHV/</source>
+  <source type="url">http://$(curl https://metadata.platformequinix.com/2009-04-04/meta-data/public-ipv4)/CHV/</source>
   <admin-interface name="eth0" proto="dhcp"/>
   <ntp-server>pool.ntp.org</ntp-server>
   <name-server>8.8.8.8</name-server>
@@ -106,3 +106,15 @@ menuentry "install" {
     module2 /install.img
 }
 EOD
+
+tee -a /etc/network/interfaces > /dev/null <<-EOD
+auto bond0.101
+    iface bond0.101 inet static
+    pre-up sleep 5
+    address 192.168.100.1
+    netmask 255.255.255.0
+    vlan-raw-device bond0
+EOD
+
+systemctl restart networking.service
+systemctl restarte dnsmasq

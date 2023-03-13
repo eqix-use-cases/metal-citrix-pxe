@@ -17,3 +17,8 @@ variable "operating_system" {
   default     = ""
   description = "OS"
 }
+
+variable "vlanid" {
+  default     = ""
+  description = "vlan id"
+}
